@@ -69,7 +69,7 @@ def compute_bbox(start, end, fps, tube_bbox, frame_shape, inp, image_shape, incr
 
     scale = f'{image_shape[0]}:{image_shape[1]}'
 
-    return f'ffmpeg -i {inp} -ss {start} -t {time} -filter:v "crop={w}:{h}:{left}:{top}, scale={scale}" crop.mp4'
+    return f'ffmpeg -i {inp} -ss {start} -t {time} -filter:v "crop={w}:{h}:{left}:{top}, scale={scale}" cropyeah.mp4'
 
 
 def compute_bbox_trajectories(trajectories, fps, frame_shape, args):
@@ -94,6 +94,7 @@ def process_video(args):
         for i, frame in tqdm(enumerate(video)):
             frame_shape = frame.shape
             bboxes =  extract_bbox(frame, fa)
+            print(bboxes)
             ## For each trajectory check the criterion
             not_valid_trajectories = []
             valid_trajectories = []
@@ -134,6 +135,7 @@ def process_video(args):
         raise (e)
 
     commands += compute_bbox_trajectories(trajectories, fps, frame_shape, args)
+    print("Commands: ", commands)
     return commands
 
 
