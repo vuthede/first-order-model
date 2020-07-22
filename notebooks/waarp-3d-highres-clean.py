@@ -122,8 +122,14 @@ _transform = transforms.Compose([transforms.ToTensor(),
                                                       std=[0.5, 0.5, 0.5])])
 
 
+x1 = 685
+y1 = 85
+x2 = 1250
+y2 = 650
 if __name__=="__main__":
-    out = cv2.VideoWriter('./highres.mp4', cv2.VideoWriter_fourcc('M','J','P','G'), 30, (512*3, 512))
+    # out = cv2.VideoWriter('./highres.mp4', cv2.VideoWriter_fourcc('M','J','P','G'), 30, (512*3, 512))
+
+    out = cv2.VideoWriter('./highresfullhd.mp4', cv2.VideoWriter_fourcc('M','J','P','G'), 2, (1920, 1080))
 
     
     sr_model = SRGANModel(get_FaceSR_opt(), is_train=False)
@@ -131,20 +137,22 @@ if __name__=="__main__":
 
     cap = cv2.VideoCapture("../resultdeenglish.mp4")
     cap_de = cv2.VideoCapture("../cropdeenglish.mp4")
+    cap_hd = cv2.VideoCapture("../obama_fullhd.mp4")
 
 
-
-    hd_img = cv2.imread("/home/vuthede/Desktop/face2.png")
-    hd_img = cv2.resize(hd_img, (256,256))
+    # hd_img = cv2.imread("/home/vuthede/Desktop/face2.png")
+    # hd_img = cv2.resize(hd_img, (256,256))
 
     while True:
         ret, img = cap.read()
         ret1, img_de = cap_de.read()
+        ret2, img_hd = cap_hd.read()
+
 
         # cv2.imshow("De", img_de)
 
 
-        if not ret or not ret1:
+        if not ret or not ret1 or not ret2:
             break
         
         img_de = cv2.resize(img_de, (512,512))
@@ -154,11 +162,11 @@ if __name__=="__main__":
         # cv2.imshow("Original", img1)
 
         # Warp3d
-        # img_hdcopy = cv2.resize(hd_img.copy(), (512,512))
-        # cv2.imshow("HD", img_hdcopy)
+        crop_hd = img_hd[y1:y2,x1:x2]
+        crop_hd = cv2.resize(crop_hd, (512,512))
+        # cv2.imshow("crop HD", crop_hd)
 
-
-        # img = warp_face(hd_img, img)
+        img = warp_face(crop_hd, img1)
         # cv2.imshow("After warp", img)
 
 
@@ -171,13 +179,22 @@ if __name__=="__main__":
         output_img = np.clip((np.transpose(output_img, (1, 2, 0)) / 2.0 + 0.5) * 255.0, 0, 255).astype(np.uint8)
 
         output_img = cv2.cvtColor(output_img, cv2.COLOR_RGB2BGR)
-        # cv2.imshow("High res",output_img)
 
-        concat = np.hstack([img_de, img1, output_img])
-        print("Concat shape:", concat.shape)
-        out.write(concat)
+        
 
-        cv2.imshow("concat", concat)
+        # concat = np.hstack([img_de, img1, output_img])
+        # print("Concat shape:", concat.shape)
+        # out.write(concat)
+        # cv2.imshow("concat", concat)
+
+        # crophd ---->full frame
+        output_img = cv2.resize(output_img,  (x2-x1, y2-y1))
+        img_hd[y1:y2, x1:x2] = output_img
+
+        out.write(img_hd)
+
+        cv2.imshow("Full Hd", img_hd)
+
 
 
         k = cv2.waitKey(1)
