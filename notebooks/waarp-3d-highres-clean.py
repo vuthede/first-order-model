@@ -143,7 +143,9 @@ if __name__=="__main__":
     # hd_img = cv2.imread("/home/vuthede/Desktop/face2.png")
     # hd_img = cv2.resize(hd_img, (256,256))
 
+    i = 0
     while True:
+
         ret, img = cap.read()
         ret1, img_de = cap_de.read()
         ret2, img_hd = cap_hd.read()
@@ -151,56 +153,72 @@ if __name__=="__main__":
 
         # cv2.imshow("De", img_de)
 
-
-        if not ret or not ret1 or not ret2:
+        if i == 30*10:
             break
-        
-        img_de = cv2.resize(img_de, (512,512))
 
-        img1 = cv2.resize(img.copy(), (512,512))
-        
-        # cv2.imshow("Original", img1)
+        if i%15==0:
+            print("Goo.............")
+            if not ret or not ret1 or not ret2:
+                break
+            
+            img_de = cv2.resize(img_de, (512,512))
 
-        # Warp3d
-        crop_hd = img_hd[y1:y2,x1:x2]
-        crop_hd = cv2.resize(crop_hd, (512,512))
-        # cv2.imshow("crop HD", crop_hd)
+            img1 = cv2.resize(img, (512,512))
+            img_tmp = cv2.resize(img, (216,216))
 
-        img = warp_face(crop_hd, img1)
-        # cv2.imshow("After warp", img)
+            
+            cv2.imshow("Original", img_tmp)
 
+            # Warp3d
+            crop_hd = img_hd[y1:y2,x1:x2]
+            crop_hd = cv2.resize(crop_hd, (512,512))
+            crop_hd1 = cv2.resize(crop_hd, (256,256))
 
-        img_128 = cv2.resize(img, (128,128))
-        img_128 = cv2.cvtColor(img_128, cv2.COLOR_BGR2RGB)
-        input_img = torch.unsqueeze(_transform(Image.fromarray(img_128)), 0)
-        sr_model.var_L = input_img.to(sr_model.device)
-        sr_model.test()
-        output_img = sr_model.fake_H.squeeze(0).cpu().numpy()
-        output_img = np.clip((np.transpose(output_img, (1, 2, 0)) / 2.0 + 0.5) * 255.0, 0, 255).astype(np.uint8)
+            cv2.imshow("crop HD", crop_hd1)
 
-        output_img = cv2.cvtColor(output_img, cv2.COLOR_RGB2BGR)
+            img = warp_face(crop_hd, img1)
 
-        
+            img_tmp = cv2.resize(img, (256,256))
 
-        # concat = np.hstack([img_de, img1, output_img])
-        # print("Concat shape:", concat.shape)
-        # out.write(concat)
-        # cv2.imshow("concat", concat)
-
-        # crophd ---->full frame
-        output_img = cv2.resize(output_img,  (x2-x1, y2-y1))
-        img_hd[y1:y2, x1:x2] = output_img
-
-        out.write(img_hd)
-
-        cv2.imshow("Full Hd", img_hd)
+            cv2.imshow("After warp", img_tmp)
 
 
+            img_128 = cv2.resize(img, (128,128))
+            img_128 = cv2.cvtColor(img_128, cv2.COLOR_BGR2RGB)
+            input_img = torch.unsqueeze(_transform(Image.fromarray(img_128)), 0)
+            sr_model.var_L = input_img.to(sr_model.device)
+            sr_model.test()
+            output_img = sr_model.fake_H.squeeze(0).cpu().numpy()
+            output_img = np.clip((np.transpose(output_img, (1, 2, 0)) / 2.0 + 0.5) * 255.0, 0, 255).astype(np.uint8)
 
-        k = cv2.waitKey(1)
+            output_img = cv2.cvtColor(output_img, cv2.COLOR_RGB2BGR)
 
-        if k==27:
-            break
+            output_img_tmp = cv2.resize(output_img, (256,256))
+            
+            cv2.imshow("Highres", output_img_tmp)
+
+
+            # concat = np.hstack([img_de, img1, output_img])
+            # print("Concat shape:", concat.shape)
+            # out.write(concat)
+            # cv2.imshow("concat", concat)
+
+            # crophd ---->full frame
+            output_img = cv2.resize(output_img,  (x2-x1, y2-y1))
+            img_hd[y1:y2, x1:x2] = output_img
+
+            out.write(img_hd)
+
+            # cv2.imshow("Full Hd", img_hd)
+
+
+
+            k = cv2.waitKey(1)
+
+            if k==27:
+                break
+
+        i+=1
 
     out.release()
     cv2.destroyAllWindows()
