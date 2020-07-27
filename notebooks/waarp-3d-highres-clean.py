@@ -110,6 +110,12 @@ def get_FaceSR_opt():
 
     # data dir
     parser.add_argument('--pretrain_model_G', type=str, default='/home/vuthede/AI/Face-Super-Resolution/checkpoints/40000_G_our.pth')
+    # parser.add_argument('--pretrain_model_G', type=str, default='/home/vuthede/10000_G_downsample.pth')
+    # parser.add_argument('--pretrain_model_G', type=str, default='/home/vuthede/10000_G_datarefined.pth')
+    # parser.add_argument('--pretrain_model_G', type=str, default='/home/vuthede/90000_G_higher_pixel_weight.pth')
+
+
+
     parser.add_argument('--pretrain_model_D', type=str, default=None)
 
     args = parser.parse_args()
@@ -126,19 +132,26 @@ x1 = 685
 y1 = 85
 x2 = 1250
 y2 = 650
-if __name__=="__main__":
-    # out = cv2.VideoWriter('./highres.mp4', cv2.VideoWriter_fourcc('M','J','P','G'), 30, (512*3, 512))
 
-    out = cv2.VideoWriter('./highresfullhd.mp4', cv2.VideoWriter_fourcc('M','J','P','G'), 2, (1920, 1080))
-
+def demo_fullhd():
+    out = cv2.VideoWriter('./highresfullhd_test.mp4', cv2.VideoWriter_fourcc('M','J','P','G'), 15, (1920, 1080))
+    out_images = "highresfullhd_test"
+    if not os.path.isdir(out_images):
+        os.makedirs(out_images)
     
     sr_model = SRGANModel(get_FaceSR_opt(), is_train=False)
     sr_model.load()
 
-    cap = cv2.VideoCapture("../resultdeenglish.mp4")
-    cap_de = cv2.VideoCapture("../cropdeenglish.mp4")
+    # cap = cv2.VideoCapture("../resultdeenglish.mp4")
+    # cap_de = cv2.VideoCapture("../cropdeenglish.mp4")
+
+    cap = cv2.VideoCapture("../result22072020night.mp4")
+    cap_de = cv2.VideoCapture("../de_capture_english5_crop.mp4")
+
     cap_hd = cv2.VideoCapture("../obama_fullhd.mp4")
 
+    # Warm up:
+    cap_hd.set(1, 2*60*30)
 
     # hd_img = cv2.imread("/home/vuthede/Desktop/face2.png")
     # hd_img = cv2.resize(hd_img, (256,256))
@@ -153,17 +166,17 @@ if __name__=="__main__":
 
         # cv2.imshow("De", img_de)
 
-        if i == 30*10:
-            break
+        if i %(5*30) ==0: # Loop 5s
+            cap_hd.set(1, 2*60*30) # Loop fullhd
 
-        if i%15==0:
+        if i%1==0:
             print("Goo.............")
             if not ret or not ret1 or not ret2:
                 break
             
             img_de = cv2.resize(img_de, (512,512))
 
-            img1 = cv2.resize(img, (512,512))
+            img1 = cv2.resize(img, (256,256))
             img_tmp = cv2.resize(img, (216,216))
 
             
@@ -171,7 +184,7 @@ if __name__=="__main__":
 
             # Warp3d
             crop_hd = img_hd[y1:y2,x1:x2]
-            crop_hd = cv2.resize(crop_hd, (512,512))
+            crop_hd = cv2.resize(crop_hd, (256,256))
             crop_hd1 = cv2.resize(crop_hd, (256,256))
 
             cv2.imshow("crop HD", crop_hd1)
@@ -222,4 +235,62 @@ if __name__=="__main__":
 
     out.release()
     cv2.destroyAllWindows()
+
+def demo_crop():
+    out = cv2.VideoWriter('./highres_higher_pixel_weight.mp4', cv2.VideoWriter_fourcc('M','J','P','G'), 30, (512*3, 512))
+    sr_model = SRGANModel(get_FaceSR_opt(), is_train=False)
+    sr_model.load()
+
+    cap = cv2.VideoCapture("../resultdeenglish.mp4")
+    cap_de = cv2.VideoCapture("../cropdeenglish.mp4")
+
+    # cap = cv2.VideoCapture("../result22072020night.mp4")
+    # cap_de = cv2.VideoCapture("../de_capture_english5_crop.mp4")
+    while True:
+
+        ret, img = cap.read()
+        ret1, img_de = cap_de.read()
+
+
+        if not ret or not ret1 :
+            break
+        
+        img_de = cv2.resize(img_de, (512,512))
+
+        img1 = cv2.resize(img, (512,512))
+
+        
+        img_128 = cv2.resize(img, (128,128))
+        img_128 = cv2.cvtColor(img_128, cv2.COLOR_BGR2RGB)
+        input_img = torch.unsqueeze(_transform(Image.fromarray(img_128)), 0)
+        sr_model.var_L = input_img.to(sr_model.device)
+        sr_model.test()
+        output_img = sr_model.fake_H.squeeze(0).cpu().numpy()
+        output_img = np.clip((np.transpose(output_img, (1, 2, 0)) / 2.0 + 0.5) * 255.0, 0, 255).astype(np.uint8)
+
+        output_img = cv2.cvtColor(output_img, cv2.COLOR_RGB2BGR)
+
+
+        concat = np.hstack([img_de, img1, output_img])
+        print("Concat shape:", concat.shape)
+        out.write(concat)
+        cv2.imshow("concat", concat)
+
+     
+
+
+        k = cv2.waitKey(1)
+
+        if k==27:
+            break
+
+
+    out.release()
+    cv2.destroyAllWindows()
+
+
+if __name__=="__main__":
+    # demo_crop()
+    demo_fullhd()
+   
 
